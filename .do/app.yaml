@@ -1,0 +1,43 @@
+name: hows-working-there-api
+region: nyc
+
+services:
+  - name: api
+    image:
+      registry_type: DOCR
+      repository: hows-working-there-api
+      tag: latest
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    http_port: 8080
+    routes:
+      - path: /
+
+    envs:
+      - key: APP_NAME
+        value: hows-working-there-api
+      - key: HTTP_PORT
+        value: "8080"
+      - key: DB_DIALECT
+        value: supabase
+      - key: SUPABASE_PROJECT_REF
+        type: SECRET
+        value: ${SUPABASE_PROJECT_REF}
+      - key: DB_USER
+        type: SECRET
+        value: ${DB_USER}
+      - key: DB_PASSWORD
+        type: SECRET
+        value: ${DB_PASSWORD}
+      - key: DB_NAME
+        value: postgres
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_SSL_MODE
+        value: require
+      - key: AUTH0_DOMAIN
+        type: SECRET
+        value: ${AUTH0_DOMAIN}
+      - key: AUTH0_AUDIENCE
+        type: SECRET
+        value: ${AUTH0_AUDIENCE}
