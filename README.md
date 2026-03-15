@@ -2,6 +2,8 @@
 
 REST API backend for the How's Working There iOS application, built with [GoFr](https://gofr.dev) and PostgreSQL via Supabase.
 
+This is a work-in-progress.
+
 ## Tech Stack
 
 - **Framework:** GoFr (Go microservice framework)
