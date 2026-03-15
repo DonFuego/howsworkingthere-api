@@ -42,11 +42,14 @@ After authentication, the user's Auth0 `sub` claim is stored as the canonical **
 |---|---|
 | **Application Type** | Native |
 | **Name** | How's Working There (iOS) |
-| **Allowed Callback URLs** | `https://YOUR_AUTH0_DOMAIN/ios/YOUR_BUNDLE_ID/callback` |
+| **Allowed Callback URLs** | `https://YOUR_AUTH0_DOMAIN/ios/YOUR_BUNDLE_ID/callback`, `http://localhost:8484/callback` (CLI tool), `https://oauth.pstmn.io/v1/callback` (Postman) |
 | **Allowed Logout URLs** | `https://YOUR_AUTH0_DOMAIN/ios/YOUR_BUNDLE_ID/callback` |
 | **Token Endpoint Auth Method** | None (public client) |
+| **Grant Types** | Authorization Code, Refresh Token |
 
 > Replace `YOUR_AUTH0_DOMAIN` with your tenant domain (e.g. `dev-xxxx.us.auth0.com`) and `YOUR_BUNDLE_ID` with the app's bundle identifier (e.g. `com.howsworkingthere.ios`).
+>
+> **Important:** The "Password" grant type is **not** needed. All authentication flows use Authorization Code Flow with PKCE, including email/password login via Auth0 Universal Login.
 
 ### 2.2 Configuration Items
 
@@ -145,21 +148,55 @@ This enables the SDK to call `.useHTTPS()` on Web Auth flows, which is required 
 
 ## 4. Authentication Flows
 
+All authentication flows use **Authorization Code Flow with PKCE** via Auth0's Universal Login. The Auth0.swift SDK handles the PKCE challenge/verifier generation, browser session, callback handling, and token exchange automatically through the `webAuth()` API.
+
+### 4.0 PKCE Flow Overview
+
+```
+iOS App                         Auth0                        API
+  │                               │                           │
+  ├─ Generate code_verifier       │                           │
+  ├─ SHA256 → code_challenge      │                           │
+  ├─ GET /authorize ─────────────>│                           │
+  │  (code_challenge, audience,   │                           │
+  │   scope, redirect_uri)        │                           │
+  │                               ├─ Show Universal Login     │
+  │                               ├─ User authenticates       │
+  │<──── 302 callback?code=xxx ───┤                           │
+  ├─ POST /oauth/token ──────────>│                           │
+  │  (code, code_verifier,        │                           │
+  │   client_id, redirect_uri)    │                           │
+  │<──── {access_token, id_token, │                           │
+  │       refresh_token} ─────────┤                           │
+  │                               │                           │
+  ├─ GET /api/v1/locations ───────┼──────────────────────────>│
+  │  Authorization: Bearer {at}   │                           │
+  │<──────────────────────────────┼─── 200 OK ────────────────┤
+```
+
+The 6 steps of PKCE:
+
+1. **Generate `code_verifier`** — 43–128 character cryptographically random string (base64url-encoded)
+2. **Create `code_challenge`** — SHA-256 hash of the verifier, base64url-encoded
+3. **Authorize user** — Redirect to `GET https://{domain}/authorize` with `code_challenge`, `code_challenge_method=S256`, `audience`, `scope`, `redirect_uri`, `client_id`, `response_type=code`
+4. **User authenticates** — On Auth0's Universal Login page (email/password, Apple, Google, etc.)
+5. **Receive authorization code** — Auth0 redirects to callback URL with `?code={authorization_code}`
+6. **Exchange for tokens** — `POST https://{domain}/oauth/token` with `code`, `code_verifier`, `client_id`, `redirect_uri`, `grant_type=authorization_code`
+
+> The Auth0.swift SDK handles all 6 steps automatically via `webAuth()`. You never need to implement PKCE manually in the iOS app.
+
 ### 4.1 Email & Password — Login
 
-Uses the Auth0 Authentication API (Resource Owner Password Grant):
+Uses Auth0 Universal Login via Authorization Code Flow with PKCE. The user is presented with Auth0's hosted login page inside an `ASWebAuthenticationSession`, where they can enter their email/password. The SDK handles the PKCE exchange automatically.
 
 ```swift
 import Auth0
 
 Auth0
-    .authentication()
-    .login(
-        usernameOrEmail: email,
-        password: password,
-        realmOrConnection: "Username-Password-Authentication",
-        scope: "openid profile email offline_access"
-    )
+    .webAuth()
+    .useHTTPS()
+    .scope("openid profile email offline_access")
+    .audience("https://api.howsworkingthere.com")
     .start { result in
         switch result {
         case .success(let credentials):
@@ -180,30 +217,21 @@ Auth0
 | `email` | Includes `email` and `email_verified` in the ID token |
 | `offline_access` | Returns a refresh token for silent session renewal |
 
-> **Note:** The Resource Owner Password Grant must be enabled for the database connection in the Auth0 dashboard under **Application → Settings → Advanced → Grant Types**. Check the "Password" grant.
+> **Advantages over Resource Owner Password Grant:**
+> - Supports MFA, Adaptive MFA, and anomaly detection
+> - No need to enable the less-secure "Password" grant type
+> - Auth0 Universal Login page is customizable under **Branding → Universal Login**
+> - Consistent flow for all auth methods (email/password, Apple, Google)
 
 ### 4.2 Email & Password — Sign Up
 
-```swift
-Auth0
-    .authentication()
-    .createUser(
-        email: email,
-        password: password,
-        connection: "Username-Password-Authentication",
-        userMetadata: ["name": name]
-    )
-    .start { result in
-        switch result {
-        case .success(let user):
-            // User created; now log them in automatically via 4.1
-        case .failure(let error):
-            // Handle error (duplicate email, weak password, etc.)
-        }
-    }
-```
+Sign-up is handled on the Auth0 Universal Login page. When a user clicks "Sign Up" on the hosted login page, Auth0 creates the account via the configured Database Connection and returns credentials through the same PKCE callback flow.
 
-After successful creation, immediately call the login flow (Section 4.1) so the user gets tokens and enters the app.
+The iOS code is identical to Section 4.1 — `webAuth()` handles both login and sign-up. No separate `createUser()` API call is needed.
+
+To customize the sign-up experience:
+- **Branding → Universal Login → Customize** in the Auth0 dashboard
+- Configure required fields (name, email) in the Database Connection settings
 
 ### 4.3 Forgot Password
 
@@ -505,7 +533,13 @@ func restoreSession() {
 
 ### 7.1 PKCE (Proof Key for Code Exchange)
 
-All Auth0 Web Auth flows (Apple, Google) use **PKCE** by default in the Auth0.swift SDK. This prevents authorization code interception attacks. No additional configuration is needed — the SDK generates a `code_verifier` and `code_challenge` automatically.
+**All authentication flows** — email/password, Apple, and Google — use **Authorization Code Flow with PKCE** via the Auth0.swift SDK's `webAuth()` API. This is the recommended flow for native mobile apps and provides:
+
+- **No client secret** — PKCE replaces the client secret with a dynamically generated `code_verifier`/`code_challenge` pair, making it safe for public clients (native apps)
+- **Authorization code interception protection** — Even if an attacker intercepts the authorization code, they cannot exchange it without the `code_verifier`
+- **Full Auth0 feature support** — MFA, Adaptive MFA, anomaly detection, brute-force protection, and bot detection all work through Universal Login
+
+No additional configuration is needed — the SDK generates the `code_verifier` and `code_challenge` automatically for every `webAuth()` call.
 
 ### 7.2 HTTPS-Only Callbacks
 

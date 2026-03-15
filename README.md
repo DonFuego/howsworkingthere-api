@@ -82,6 +82,11 @@ All endpoints require a valid Auth0 JWT Bearer token.
    docker compose up --build
    ```
 
+5. Verify `pgvector` is enabled (Docker local DB):
+   ```bash
+   docker compose exec db psql -U hwt -d howsworkingthere -c "SELECT extname FROM pg_extension WHERE extname = 'vector';"
+   ```
+
 The API starts on port `8080` by default.
 
 ## Deployment

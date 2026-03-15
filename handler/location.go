@@ -60,14 +60,7 @@ func SearchLocations(c *gofr.Context) (interface{}, error) {
 			}
 		}
 
-		haversine := fmt.Sprintf(
-			`(6371 * acos(
-				LEAST(1.0, cos(radians($%d)) * cos(radians(latitude)) *
-				cos(radians(longitude) - radians($%d)) +
-				sin(radians($%d)) * sin(radians(latitude)))
-			)) <= $%d`,
-			argIdx, argIdx+1, argIdx+2, argIdx+3,
-		)
+		haversine := fmt.Sprintf(`(6371 * acos(LEAST(1.0, cos(radians($%d)) * cos(radians(latitude)) * cos(radians(longitude) - radians($%d)) + sin(radians($%d)) * sin(radians(latitude))))) <= $%d`, argIdx, argIdx+1, argIdx+2, argIdx+3)
 		conditions = append(conditions, haversine)
 		args = append(args, lat, lng, lat, radiusKm)
 		argIdx += 4

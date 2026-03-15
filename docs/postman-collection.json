@@ -1,0 +1,389 @@
+{
+  "info": {
+    "name": "How's Working There API",
+    "description": "REST API for the How's Working There iOS app. All endpoints require Auth0 JWT Bearer token authentication. Base URL should be set to either local dev (http://localhost:8080) or production.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "hwt-api-collection"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "API base URL - change to production when deploying"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string",
+      "description": "Auth0 JWT Bearer token - get via '0. Get Auth0 Token' request or tools/get-auth0-token.go"
+    },
+    {
+      "key": "user_id",
+      "value": "auth0|1234567890",
+      "type": "string",
+      "description": "User ID (Auth0 sub claim) - must match the token's sub claim"
+    },
+    {
+      "key": "location_id",
+      "value": "",
+      "type": "string",
+      "description": "Location UUID - set after creating a check-in"
+    },
+    {
+      "key": "check_in_id",
+      "value": "",
+      "type": "string",
+      "description": "Check-in UUID - client-generated for idempotency (use uuidgen or similar)"
+    },
+    {
+      "key": "auth0_domain",
+      "value": "dev-xxxx.us.auth0.com",
+      "type": "string",
+      "description": "Your Auth0 domain (for token requests)"
+    },
+    {
+      "key": "auth0_client_id",
+      "value": "",
+      "type": "string",
+      "description": "Your Auth0 application Client ID (for token requests)"
+    },
+    {
+      "key": "auth0_audience",
+      "value": "https://api.howsworkingthere.com",
+      "type": "string",
+      "description": "Your Auth0 API audience identifier"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Authentication",
+      "item": [
+        {
+          "name": "Get Auth0 Token (Password Flow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grant_type\": \"http://auth0.com/oauth/grant-type/password-realm\",\n  \"client_id\": \"{{auth0_client_id}}\",\n  \"username\": \"{{auth0_email}}\",\n  \"password\": \"{{auth0_password}}\",\n  \"audience\": \"{{auth0_audience}}\",\n  \"realm\": \"Username-Password-Authentication\",\n  \"scope\": \"openid profile email\"\n}"
+            },
+            "url": {
+              "raw": "https://{{auth0_domain}}/oauth/token",
+              "host": ["https://{{auth0_domain}}"],
+              "path": ["oauth", "token"]
+            },
+            "description": "Get an Auth0 access token using username/password (Resource Owner Password Flow).\n\nPrerequisites:\n1. Enable 'Password' grant type in Auth0 Application settings → Advanced → Grant Types\n2. Create a test user in Auth0 Authentication → Database → Users\n3. Set collection variables: auth0_domain, auth0_client_id, auth0_audience, auth0_email, auth0_password\n\nAfter running this request, copy the 'access_token' from the response and paste it into the 'auth_token' collection variable.\n\nAlternative: Use the CLI tool:\n  go run tools/get-auth0-token.go -email user@example.com -password secret123"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Auto-save access_token to collection variable",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set('auth_token', jsonData.access_token);",
+                  "    console.log('✅ Token saved to auth_token variable');",
+                  "    console.log('Token expires in:', jsonData.expires_in, 'seconds');",
+                  "} else {",
+                  "    console.log('❌ No access_token in response:', jsonData);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Authentication helpers for getting Auth0 tokens.\n\n## Quick Start\n\n### Option 1: Postman Request (Recommended)\n1. Run the 'Get Auth0 Token' request below\n2. The token is automatically saved to the {{auth_token}} variable\n\n### Option 2: Go CLI Tool\n```bash\ngo run tools/get-auth0-token.go \\\n  -domain dev-xxxx.us.auth0.com \\\n  -client-id YOUR_CLIENT_ID \\\n  -audience https://api.howsworkingthere.com \\\n  -email test@example.com \\\n  -password secret123\n```\n\n### Option 3: Shell Script\n```bash\nexport AUTH0_DOMAIN=dev-xxxx.us.auth0.com\nexport AUTH0_CLIENT_ID=YOUR_CLIENT_ID\nexport AUTH0_AUDIENCE=https://api.howsworkingthere.com\n./tools/get-auth0-token.sh test@example.com secret123\n```\n\n## Required Variables\n\n| Variable | Description | Where to Find |\n|----------|-------------|---------------|\n| `auth0_domain` | Your Auth0 tenant | Auth0 Dashboard → Applications → Settings → Domain |\n| `auth0_client_id` | Application client ID | Auth0 Dashboard → Applications → Settings → Client ID |\n| `auth0_audience` | API identifier | Auth0 Dashboard → APIs → Your API → Identifier |\n| `auth0_email` | Test user email | Auth0 Dashboard → Authentication → Database → Users |\n| `auth0_password` | Test user password | Same as above |\n\n## Auth0 Setup Required\n\n1. **Enable Password Grant**: Application → Advanced Settings → Grant Types → Check 'Password'\n2. **Create Test User**: Authentication → Database → Create User\n3. **Note on Social Logins**: Password flow only works for Database connections (email/password). For Apple/Google, use the Auth0 Dashboard's API section to generate test tokens."
+    },
+    {
+      "name": "1. Location Search",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text",
+            "description": "Auth0 JWT Bearer token"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/locations/search?name={{search_name}}&address={{search_address}}&latitude={{search_lat}}&longitude={{search_lng}}&radius_km=0.5",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "locations", "search"],
+          "query": [
+            {
+              "key": "name",
+              "value": "{{search_name}}",
+              "description": "Filter by location name (partial match, case-insensitive)"
+            },
+            {
+              "key": "address",
+              "value": "{{search_address}}",
+              "description": "Filter by address (partial match, case-insensitive)"
+            },
+            {
+              "key": "latitude",
+              "value": "{{search_lat}}",
+              "description": "Center latitude for geo search (required with longitude)"
+            },
+            {
+              "key": "longitude",
+              "value": "{{search_lng}}",
+              "description": "Center longitude for geo search (required with latitude)"
+            },
+            {
+              "key": "radius_km",
+              "value": "0.5",
+              "description": "Search radius in km (default: 0.5)"
+            }
+          ]
+        },
+        "description": "Search for existing locations by name, address, or geo-coordinates. Returns up to 50 matches. At least one search parameter is required. Uses Haversine formula for geo-distance calculation."
+      },
+      "response": [
+        {
+          "name": "Search by geo (Starbucks nearby)",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{auth_token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/locations/search?latitude=40.7128&longitude=-74.0060&radius_km=0.5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "locations", "search"],
+              "query": [
+                {"key": "latitude", "value": "40.7128"},
+                {"key": "longitude", "value": "-74.0060"},
+                {"key": "radius_km", "value": "0.5"}
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{"key": "Content-Type", "value": "application/json"}],
+          "body": "[\n  {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Starbucks - Times Square\",\n    \"address\": \"123 Broadway, New York, NY 10001\",\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060,\n    \"category\": \"cafe\",\n    \"mapkit_poi_category\": \"coffee_shop\",\n    \"created_at\": \"2025-03-01T10:00:00Z\",\n    \"updated_at\": \"2025-03-01T10:00:00Z\"\n  }\n]"
+        },
+        {
+          "name": "Search by name (partial match)",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{auth_token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/locations/search?name=starbucks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "locations", "search"],
+              "query": [{"key": "name", "value": "starbucks"}]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{"key": "Content-Type", "value": "application/json"}],
+          "body": "[\n  {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Starbucks - Times Square\",\n    \"address\": \"123 Broadway, New York, NY 10001\",\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060,\n    \"category\": \"cafe\",\n    \"mapkit_poi_category\": \"coffee_shop\",\n    \"created_at\": \"2025-03-01T10:00:00Z\",\n    \"updated_at\": \"2025-03-01T10:00:00Z\"\n  },\n  {\n    \"id\": \"660e8400-e29b-41d4-a716-446655440001\",\n    \"name\": \"Starbucks - Midtown\",\n    \"address\": \"456 5th Ave, New York, NY 10018\",\n    \"latitude\": 40.7489,\n    \"longitude\": -73.9680,\n    \"category\": \"cafe\",\n    \"mapkit_poi_category\": \"coffee_shop\",\n    \"created_at\": \"2025-03-02T11:00:00Z\",\n    \"updated_at\": \"2025-03-02T11:00:00Z\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "name": "2. Create Check-In (Full)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text",
+            "description": "Auth0 JWT Bearer token"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"{{check_in_id}}\",\n  \"user_id\": \"{{user_id}}\",\n  \"timestamp\": \"2025-03-03T14:30:00Z\",\n  \"location\": {\n    \"name\": \"Joe's Coffee\",\n    \"address\": \"789 Main St, San Francisco, CA 94102\",\n    \"latitude\": 37.7749,\n    \"longitude\": -122.4194,\n    \"category\": \"cafe\",\n    \"mapkit_poi_category\": \"coffee_shop\"\n  },\n  \"speed_test\": {\n    \"download_speed_mbps\": 85.5,\n    \"upload_speed_mbps\": 42.3,\n    \"latency_ms\": 15,\n    \"jitter\": 2.1,\n    \"isp_name\": \"Comcast\",\n    \"ip_address\": \"203.0.113.45\",\n    \"network_type\": \"wifi\",\n    \"packet_loss_percent\": 0.0,\n    \"time_to_first_byte_ms\": 45,\n    \"download_transferred_mb\": 25.4,\n    \"upload_transferred_mb\": 12.1,\n    \"server\": {\n      \"domain\": \"speedtest.example.com\",\n      \"city\": \"San Francisco\",\n      \"country\": \"USA\"\n    },\n    \"speed_test_id\": \"test-123456\",\n    \"skipped\": false\n  },\n  \"noise_level\": {\n    \"average_decibels\": 45.2,\n    \"peak_decibels\": 68.5,\n    \"duration_seconds\": 30.0,\n    \"skipped\": false\n  },\n  \"workspace_ratings\": {\n    \"outlets_at_bar\": true,\n    \"outlets_at_table\": false,\n    \"crowdedness\": 3,\n    \"ease_of_work\": 4,\n    \"best_work_type\": \"focused_work\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/check-ins",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "check-ins"]
+        },
+        "description": "Create a full check-in with a new or existing location. This endpoint: (1) upserts the location (creates new or returns existing), (2) inserts check-in record, (3) inserts speed test, noise level, and workspace ratings. All operations are in a single database transaction. Client-generated `id` provides idempotency for retries."
+      },
+      "response": [
+        {
+          "name": "New location created",
+          "status": "Created",
+          "code": 200,
+          "header": [{"key": "Content-Type", "value": "application/json"}],
+          "body": "{\n  \"check_in_id\": \"770e8400-e29b-41d4-a716-446655440002\",\n  \"location_id\": \"880e8400-e29b-41d4-a716-446655440003\",\n  \"location_is_new\": true,\n  \"created_at\": \"2025-03-03T14:30:00Z\"\n}"
+        },
+        {
+          "name": "Existing location (idempotent retry)",
+          "status": "OK",
+          "code": 200,
+          "header": [{"key": "Content-Type", "value": "application/json"}],
+          "body": "{\n  \"check_in_id\": \"770e8400-e29b-41d4-a716-446655440002\",\n  \"location_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"created_at\": \"2025-03-03T14:30:00Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. Create Check-In (Existing Location)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text",
+            "description": "Auth0 JWT Bearer token"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"{{check_in_id}}\",\n  \"user_id\": \"{{user_id}}\",\n  \"timestamp\": \"2025-03-03T15:00:00Z\",\n  \"speed_test\": {\n    \"download_speed_mbps\": 120.0,\n    \"upload_speed_mbps\": 60.0,\n    \"latency_ms\": 10,\n    \"jitter\": 1.5,\n    \"isp_name\": \"Verizon\",\n    \"network_type\": \"wifi\",\n    \"time_to_first_byte_ms\": 30,\n    \"download_transferred_mb\": 30.0,\n    \"upload_transferred_mb\": 15.0,\n    \"speed_test_id\": \"test-789012\",\n    \"skipped\": false\n  },\n  \"noise_level\": {\n    \"average_decibels\": 50.0,\n    \"peak_decibels\": 70.0,\n    \"duration_seconds\": 30.0,\n    \"skipped\": false\n  },\n  \"workspace_ratings\": {\n    \"outlets_at_bar\": true,\n    \"outlets_at_table\": true,\n    \"crowdedness\": 4,\n    \"ease_of_work\": 3,\n    \"best_work_type\": \"calls\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/locations/{{location_id}}/check-ins",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "locations", "{{location_id}}", "check-ins"]
+        },
+        "description": "Create a check-in at an existing location (use location_id from search or previous check-in). This skips the location upsert and directly associates the check-in, speed test, noise level, and ratings with the specified location. Returns 404 if location_id doesn't exist."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "status": "Created",
+          "code": 200,
+          "header": [{"key": "Content-Type", "value": "application/json"}],
+          "body": "{\n  \"check_in_id\": \"990e8400-e29b-41d4-a716-446655440004\",\n  \"location_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"created_at\": \"2025-03-03T15:00:00Z\"\n}"
+        },
+        {
+          "name": "Location not found",
+          "status": "Not Found",
+          "code": 404,
+          "header": [{"key": "Content-Type", "value": "application/json"}],
+          "body": "{\n  \"error\": \"location not found: 550e8400-e29b-41d4-a716-446655440999\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. Get User's Locations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text",
+            "description": "Auth0 JWT Bearer token - must match user_id"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/users/{{user_id}}/locations",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "users", "{{user_id}}", "locations"]
+        },
+        "description": "Get all locations the authenticated user has tested, with averaged scores from v_user_location_averages view. Results include: my_avg_download_mbps, my_avg_upload_mbps, my_avg_decibels, my_avg_crowdedness, etc. Returns 403 if JWT sub doesn't match the requested user_id."
+      },
+      "response": [
+        {
+          "name": "User locations with averages",
+          "status": "OK",
+          "code": 200,
+          "header": [{"key": "Content-Type", "value": "application/json"}],
+          "body": "[\n  {\n    \"user_id\": \"auth0|1234567890\",\n    \"location_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"location_name\": \"Starbucks - Times Square\",\n    \"location_address\": \"123 Broadway, New York, NY 10001\",\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060,\n    \"location_category\": \"cafe\",\n    \"my_check_ins\": 5,\n    \"my_avg_download_mbps\": 78.4,\n    \"my_avg_upload_mbps\": 41.2,\n    \"my_avg_latency_ms\": 16.0,\n    \"my_speed_test_count\": 5,\n    \"my_avg_decibels\": 46.8,\n    \"my_avg_peak_decibels\": 68.2,\n    \"my_noise_test_count\": 4,\n    \"my_avg_crowdedness\": 3.2,\n    \"my_avg_ease_of_work\": 3.8,\n    \"my_rating_count\": 5,\n    \"my_pct_outlets_at_bar\": 80.0,\n    \"my_pct_outlets_at_table\": 20.0,\n    \"my_most_common_work_type\": \"focused_work\",\n    \"my_first_check_in\": \"2025-03-01T10:00:00Z\",\n    \"my_last_check_in\": \"2025-03-03T14:30:00Z\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "name": "5. Get All Locations (Global)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text",
+            "description": "Auth0 JWT Bearer token"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/locations?category={{category}}&latitude={{lat}}&longitude={{lng}}&radius_km=10&limit=50&offset=0",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "locations"],
+          "query": [
+            {
+              "key": "category",
+              "value": "{{category}}",
+              "description": "Filter by location category (e.g., cafe, library, coworking)"
+            },
+            {
+              "key": "latitude",
+              "value": "{{lat}}",
+              "description": "Center latitude for geo-bounding (optional)"
+            },
+            {
+              "key": "longitude",
+              "value": "{{lng}}",
+              "description": "Center longitude for geo-bounding (optional)"
+            },
+            {
+              "key": "radius_km",
+              "value": "10",
+              "description": "Radius for geo search (default: 10km)"
+            },
+            {
+              "key": "limit",
+              "value": "50",
+              "description": "Max results (default: 50, max: 200)"
+            },
+            {
+              "key": "offset",
+              "value": "0",
+              "description": "Pagination offset (default: 0)"
+            }
+          ]
+        },
+        "description": "Get all tested locations with aggregated scores from v_location_averages view. Results include community averages across all users: avg_download_mbps, avg_upload_mbps, avg_decibels, unique_users count, total_check_ins, etc. Supports filtering by category, geo-bounding, and pagination. Sorted by total_check_ins descending."
+      },
+      "response": [
+        {
+          "name": "Global locations with community averages",
+          "status": "OK",
+          "code": 200,
+          "header": [{"key": "Content-Type", "value": "application/json"}],
+          "body": "[\n  {\n    \"location_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"location_name\": \"Starbucks - Times Square\",\n    \"location_address\": \"123 Broadway, New York, NY 10001\",\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060,\n    \"location_category\": \"cafe\",\n    \"total_check_ins\": 142,\n    \"unique_users\": 87,\n    \"avg_download_mbps\": 65.3,\n    \"avg_upload_mbps\": 38.7,\n    \"avg_latency_ms\": 18.5,\n    \"speed_test_count\": 138,\n    \"avg_decibels\": 52.1,\n    \"avg_peak_decibels\": 71.3,\n    \"noise_test_count\": 125,\n    \"avg_crowdedness\": 3.8,\n    \"avg_ease_of_work\": 3.2,\n    \"rating_count\": 140,\n    \"pct_outlets_at_bar\": 75.0,\n    \"pct_outlets_at_table\": 25.0,\n    \"most_common_work_type\": \"focused_work\",\n    \"first_check_in\": \"2024-06-01T08:00:00Z\",\n    \"last_check_in\": \"2025-03-03T16:45:00Z\"\n  },\n  {\n    \"location_id\": \"660e8400-e29b-41d4-a716-446655440001\",\n    \"location_name\": \"The Library - Downtown\",\n    \"location_address\": \"456 5th Ave, New York, NY 10018\",\n    \"latitude\": 40.7489,\n    \"longitude\": -73.9680,\n    \"location_category\": \"library\",\n    \"total_check_ins\": 89,\n    \"unique_users\": 54,\n    \"avg_download_mbps\": 45.2,\n    \"avg_upload_mbps\": 28.5,\n    \"avg_latency_ms\": 22.0,\n    \"speed_test_count\": 85,\n    \"avg_decibels\": 38.5,\n    \"avg_peak_decibels\": 55.0,\n    \"noise_test_count\": 80,\n    \"avg_crowdedness\": 2.5,\n    \"avg_ease_of_work\": 4.5,\n    \"rating_count\": 88,\n    \"pct_outlets_at_bar\": 10.0,\n    \"pct_outlets_at_table\": 90.0,\n    \"most_common_work_type\": \"focused_work\",\n    \"first_check_in\": \"2024-08-15T09:00:00Z\",\n    \"last_check_in\": \"2025-03-02T14:20:00Z\"\n  }\n]"
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  }
+}
