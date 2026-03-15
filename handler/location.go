@@ -5,9 +5,44 @@ import (
 	"strconv"
 	"strings"
 
+	apierrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/models"
 	"gofr.dev/pkg/gofr"
 )
+
+// CreateLocation handles POST /api/v1/locations
+// Inserts a new location and returns the full row including the generated UUID.
+func CreateLocation(c *gofr.Context) (interface{}, error) {
+	var req models.LocationRequest
+	if err := c.Bind(&req); err != nil {
+		return nil, apierrors.BadRequestError{Message: "invalid request body: " + err.Error()}
+	}
+
+	if req.Name == "" || req.Address == "" || req.Category == "" {
+		return nil, apierrors.BadRequestError{Message: "name, address, and category are required"}
+	}
+
+	var loc models.Location
+	err := c.SQL.QueryRowContext(c,
+		`INSERT INTO locations (name, address, latitude, longitude, category, mapkit_poi_category)
+		 VALUES ($1, $2, $3, $4, $5, $6)
+		 RETURNING id, name, address, latitude, longitude, category, mapkit_poi_category, created_at, updated_at`,
+		req.Name, req.Address, req.Latitude, req.Longitude, req.Category, req.MapkitPOICategory,
+	).Scan(
+		&loc.ID, &loc.Name, &loc.Address,
+		&loc.Latitude, &loc.Longitude,
+		&loc.Category, &loc.MapkitPOICategory,
+		&loc.CreatedAt, &loc.UpdatedAt,
+	)
+	if err != nil {
+		if strings.Contains(err.Error(), "uq_locations_name_coords") {
+			return nil, apierrors.BadRequestError{Message: "a location with this name and coordinates already exists"}
+		}
+		return nil, fmt.Errorf("failed to insert location: %w", err)
+	}
+
+	return loc, nil
+}
 
 // SearchLocations handles GET /api/v1/locations/search
 // Supports searching by name, address, or geo-coordinates (latitude + longitude + optional radius_km).

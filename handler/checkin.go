@@ -12,15 +12,15 @@ import (
 )
 
 // CreateCheckIn handles POST /api/v1/check-ins
-// Creates a full check-in: upserts location + inserts check-in, speed test, noise level, and workspace ratings.
+// Creates a check-in linked to an existing location, with speed test, noise level, and workspace ratings.
 func CreateCheckIn(c *gofr.Context) (interface{}, error) {
 	var req models.CheckInRequest
 	if err := c.Bind(&req); err != nil {
 		return nil, fmt.Errorf("invalid request body: %w", err)
 	}
 
-	if req.ID == "" || req.UserID == "" || req.Location.Name == "" {
-		return nil, fmt.Errorf("missing required fields: id, user_id, and location.name are required")
+	if req.ID == "" || req.UserID == "" || req.Location.ID == "" {
+		return nil, fmt.Errorf("missing required fields: id, user_id, and location.id are required")
 	}
 
 	// Verify the request user_id matches the authenticated user
@@ -32,29 +32,22 @@ func CreateCheckIn(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.ForbiddenError{Message: "user_id mismatch: token sub does not match request user_id"}
 	}
 
+	locationID := req.Location.ID
+
+	// Verify the location exists
+	var locExists bool
+	err := c.SQL.QueryRowContext(c,
+		`SELECT EXISTS(SELECT 1 FROM locations WHERE id = $1)`, locationID,
+	).Scan(&locExists)
+	if err != nil || !locExists {
+		return nil, appErrors.NotFoundError{Message: fmt.Sprintf("location not found: %s", locationID)}
+	}
+
 	tx, err := c.SQL.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
-
-	// Upsert location: insert or return existing
-	var locationID string
-	var locationIsNew bool
-
-	err = tx.QueryRowContext(c,
-		`INSERT INTO locations (name, address, latitude, longitude, category, mapkit_poi_category)
-		 VALUES ($1, $2, $3, $4, $5, $6)
-		 ON CONFLICT (name, latitude, longitude)
-		 DO UPDATE SET updated_at = NOW()
-		 RETURNING id, (xmax = 0) AS is_new`,
-		req.Location.Name, req.Location.Address,
-		req.Location.Latitude, req.Location.Longitude,
-		req.Location.Category, req.Location.MapkitPOICategory,
-	).Scan(&locationID, &locationIsNew)
-	if err != nil {
-		return nil, fmt.Errorf("failed to upsert location: %w", err)
-	}
 
 	// Check idempotency: if check-in with this ID already exists, return it
 	var existingCheckInID string
@@ -103,10 +96,9 @@ func CreateCheckIn(c *gofr.Context) (interface{}, error) {
 	}
 
 	return models.CheckInResponse{
-		CheckInID:     req.ID,
-		LocationID:    locationID,
-		LocationIsNew: locationIsNew,
-		CreatedAt:     req.Timestamp,
+		CheckInID:  req.ID,
+		LocationID: locationID,
+		CreatedAt:  req.Timestamp,
 	}, nil
 }
 

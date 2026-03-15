@@ -2,12 +2,17 @@ package models
 
 import "time"
 
+// LocationRef identifies an existing location by its UUID.
+type LocationRef struct {
+	ID string `json:"id" validate:"required"`
+}
+
 // CheckInRequest is the full payload sent by the iOS client for a new check-in.
 type CheckInRequest struct {
 	ID               string                  `json:"id" validate:"required"`
 	UserID           string                  `json:"user_id" validate:"required"`
 	Timestamp        time.Time               `json:"timestamp" validate:"required"`
-	Location         LocationRequest         `json:"location" validate:"required"`
+	Location         LocationRef             `json:"location" validate:"required"`
 	SpeedTest        SpeedTestRequest        `json:"speed_test" validate:"required"`
 	NoiseLevel       NoiseLevelRequest       `json:"noise_level" validate:"required"`
 	WorkspaceRatings WorkspaceRatingsRequest `json:"workspace_ratings" validate:"required"`
@@ -25,8 +30,7 @@ type ExistingLocationCheckInRequest struct {
 
 // CheckInResponse is returned after successfully creating a check-in.
 type CheckInResponse struct {
-	CheckInID     string    `json:"check_in_id"`
-	LocationID    string    `json:"location_id"`
-	LocationIsNew bool      `json:"location_is_new,omitempty"`
-	CreatedAt     time.Time `json:"created_at"`
+	CheckInID  string    `json:"check_in_id"`
+	LocationID string    `json:"location_id"`
+	CreatedAt  time.Time `json:"created_at"`
 }

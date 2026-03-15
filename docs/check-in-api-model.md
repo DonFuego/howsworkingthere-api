@@ -19,12 +19,7 @@ POST /api/v1/check-ins
   "timestamp": "2026-03-03T20:49:00Z",
 
   "location": {
-    "name": "Surin Of Thailand",
-    "address": "810 N Highland Ave NE Atlanta GA 30306",
-    "latitude": 33.7901,
-    "longitude": -84.3513,
-    "category": "restaurant_bar",
-    "mapkit_poi_category": "MKPOICategoryRestaurant"
+    "id": "uuid"
   },
 
   "speed_test": {
@@ -81,12 +76,7 @@ POST /api/v1/check-ins
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `name` | String | Yes | Place name from MapKit search |
-| `address` | String | Yes | Full street address |
-| `latitude` | Double | Yes | GPS latitude |
-| `longitude` | Double | Yes | GPS longitude |
-| `category` | Enum | Yes | User-confirmed location category (auto-detected from MapKit, overridable) |
-| `mapkit_poi_category` | String? | No | Raw `MKPointOfInterestCategory.rawValue` from MapKit for reference |
+| `id` | UUID | Yes | Location id from MapKit search |
 
 ### `speed_test`
 

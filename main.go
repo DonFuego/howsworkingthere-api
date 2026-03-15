@@ -12,6 +12,9 @@ func main() {
 	// Auth0 JWT middleware — validates Bearer token on all requests
 	app.UseMiddleware(middleware.Auth0Middleware)
 
+	// Add a new location
+	app.POST("/api/v1/locations", handler.CreateLocation)
+
 	// Location search
 	app.GET("/api/v1/locations/search", handler.SearchLocations)
 

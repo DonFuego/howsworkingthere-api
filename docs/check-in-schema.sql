@@ -26,7 +26,7 @@ $$ language 'plpgsql';
 CREATE TABLE IF NOT EXISTS locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(500) NOT NULL,
-    address TEXT NOT NULL,
+    address VARCHAR(500) NOT NULL,
     latitude DECIMAL(10, 8) NOT NULL,
     longitude DECIMAL(11, 8) NOT NULL,
 
@@ -60,6 +60,7 @@ CREATE TRIGGER update_locations_updated_at
 -- Note: Use CREATE INDEX CONCURRENTLY in production to avoid table locks
 CREATE INDEX IF NOT EXISTS idx_locations_coords ON locations(latitude, longitude);
 CREATE INDEX IF NOT EXISTS idx_locations_name ON locations(name);
+CREATE INDEX IF NOT EXISTS idx_locations_address ON locations(address);
 CREATE INDEX IF NOT EXISTS idx_locations_category ON locations(category);
 
 -- ============================================
