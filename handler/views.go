@@ -160,8 +160,7 @@ func GetAllLocations(c *gofr.Context) (interface{}, error) {
 	}
 
 	query += " ORDER BY total_check_ins DESC"
-	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
-	args = append(args, limit, offset)
+	query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
 
 	rows, err := c.SQL.QueryContext(c, query, args...)
 	if err != nil {
