@@ -29,7 +29,7 @@ func GetUserLocations(c *gofr.Context) (interface{}, error) {
 	}
 
 	rows, err := c.SQL.QueryContext(c,
-		`SELECT
+		fmt.Sprintf(`SELECT
 			user_id, location_id, location_name, location_address,
 			latitude, longitude, location_category,
 			my_check_ins,
@@ -41,8 +41,8 @@ func GetUserLocations(c *gofr.Context) (interface{}, error) {
 			my_most_common_work_type,
 			my_first_check_in, my_last_check_in
 		FROM v_user_location_averages
-		WHERE user_id = $1
-		ORDER BY my_last_check_in DESC`, userID,
+		WHERE user_id = '%s'
+		ORDER BY my_last_check_in DESC`, userID),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query user locations: %w", err)
