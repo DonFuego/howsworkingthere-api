@@ -44,7 +44,3 @@ jobs:
         run: |
           docker push ${{ env.REGISTRY }}/${{ secrets.DIGITALOCEAN_REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.REGISTRY }}/${{ secrets.DIGITALOCEAN_REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:latest
-
-      - name: Deploy to App Platform
-        run: |
-          doctl apps create-deployment ${{ secrets.DIGITALOCEAN_APP_ID }} --wait
