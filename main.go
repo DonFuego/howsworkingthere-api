@@ -30,5 +30,8 @@ func main() {
 	// All tested locations (averaged scores)
 	app.GET("/api/v1/locations", handler.GetAllLocations)
 
+	// Single location comprehensive detail
+	app.GET("/api/v1/locations/{location_id}/detail", handler.GetLocationDetail)
+
 	app.Run()
 }
