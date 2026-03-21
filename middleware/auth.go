@@ -49,8 +49,20 @@ var cache = &jwksCache{
 }
 
 // Auth0Middleware validates the Auth0 JWT Bearer token and injects user_id into the request context.
+// Paths that use their own auth (e.g. Auth0 triggers) are skipped.
 func Auth0Middleware(inner http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Auth0 trigger paths use their own HMAC JWT auth
+		if r.URL.Path == "/user/register" {
+			authHeader := r.Header.Get("Authorization")
+			if err := ValidateTriggerToken(authHeader); err != nil {
+				http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusUnauthorized)
+				return
+			}
+			inner.ServeHTTP(w, r)
+			return
+		}
+
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			http.Error(w, `{"error":"missing Authorization header"}`, http.StatusUnauthorized)

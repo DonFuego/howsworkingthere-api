@@ -33,5 +33,8 @@ func main() {
 	// Single location comprehensive detail
 	app.GET("/api/v1/locations/{location_id}/detail", handler.GetLocationDetail)
 
+	// Auth0 post-registration trigger (uses its own JWT auth via Auth0TriggerMiddleware)
+	app.POST("/user/register", handler.RegisterUser)
+
 	app.Run()
 }
