@@ -17,7 +17,13 @@ func ListNotifications(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.UnauthorizedError{Message: "unable to determine authenticated user"}
 	}
 
-	rows, err := c.SQL.QueryContext(c,
+	tx, err := c.SQL.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.QueryContext(c,
 		`SELECT n.id, n.type, n.from_user_id, u.user_name, n.reference_id, n.message, n.is_read, n.created_at
 		 FROM notifications n
 		 JOIN users u ON u.id = n.from_user_id

@@ -17,8 +17,14 @@ func GetFriendsActivity(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.UnauthorizedError{Message: "unable to determine authenticated user"}
 	}
 
-	rows, err := c.SQL.QueryContext(c,
-		`SELECT u.user_name, l.name, l.address, l.category, ci.timestamp
+	tx, err := c.SQL.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.QueryContext(c,
+		`SELECT u.user_name, l.id, l.name, l.address, l.category, ci.timestamp
 		 FROM check_ins ci
 		 JOIN friendships f ON f.friend_id = ci.user_id AND f.user_id = $1 AND f.status = 'accepted'
 		 JOIN users u ON u.id = ci.user_id
@@ -36,7 +42,7 @@ func GetFriendsActivity(c *gofr.Context) (interface{}, error) {
 	var activities []models.FriendActivity
 	for rows.Next() {
 		var a models.FriendActivity
-		if err := rows.Scan(&a.UserName, &a.LocationName, &a.LocationAddress, &a.Category, &a.Timestamp); err != nil {
+		if err := rows.Scan(&a.UserName, &a.LocationID, &a.LocationName, &a.LocationAddress, &a.Category, &a.Timestamp); err != nil {
 			return nil, fmt.Errorf("failed to scan friend activity: %w", err)
 		}
 		activities = append(activities, a)

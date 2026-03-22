@@ -298,7 +298,13 @@ func ListFriends(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.UnauthorizedError{Message: "unable to determine authenticated user"}
 	}
 
-	rows, err := c.SQL.QueryContext(c,
+	tx, err := c.SQL.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.QueryContext(c,
 		`SELECT u.id, u.user_name, u.email, f.status
 		 FROM friendships f
 		 JOIN users u ON u.id = f.friend_id
