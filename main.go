@@ -33,6 +33,21 @@ func main() {
 	// Single location comprehensive detail
 	app.GET("/api/v1/locations/{location_id}/detail", handler.GetLocationDetail)
 
+	// User search by email
+	app.GET("/api/v1/users/search", handler.SearchUserByEmail)
+
+	// Friends management
+	app.POST("/api/v1/friends/request", handler.SendFriendRequest)
+	app.POST("/api/v1/friends/accept", handler.AcceptFriendRequest)
+	app.POST("/api/v1/friends/deny", handler.DenyFriendRequest)
+	app.DELETE("/api/v1/friends/{friend_id}", handler.RemoveFriend)
+	app.GET("/api/v1/friends", handler.ListFriends)
+	app.GET("/api/v1/friends/activity", handler.GetFriendsActivity)
+
+	// Notifications
+	app.GET("/api/v1/notifications", handler.ListNotifications)
+	app.POST("/api/v1/notifications/{id}/read", handler.MarkNotificationRead)
+
 	// Auth0 post-registration trigger (uses its own JWT auth via Auth0TriggerMiddleware)
 	app.POST("/user/register", handler.RegisterUser)
 

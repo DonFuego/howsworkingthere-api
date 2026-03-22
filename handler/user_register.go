@@ -22,7 +22,13 @@ func RegisterUser(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.BadRequestError{Message: "missing required fields: email, user_id, and user_name are required"}
 	}
 
-	_, err := c.SQL.ExecContext(c,
+	tx, err := c.SQL.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(c,
 		`INSERT INTO users (id, email, user_name)
 		 VALUES ($1, $2, $3)
 		 ON CONFLICT (id) DO NOTHING`,
@@ -30,6 +36,10 @@ func RegisterUser(c *gofr.Context) (interface{}, error) {
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert user: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit user insert: %w", err)
 	}
 
 	return map[string]string{
