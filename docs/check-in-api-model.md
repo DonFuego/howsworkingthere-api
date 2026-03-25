@@ -116,7 +116,7 @@ POST /api/v1/check-ins
 | `outlets_at_table` | Bool | Yes | Power outlets at table seating |
 | `crowdedness` | Int (1-3) | Yes | `1` = Empty, `2` = Somewhat Crowded, `3` = Crowded |
 | `ease_of_work` | Int (1-3) | Yes | `1` = Easy, `2` = Moderate, `3` = Difficult |
-| `best_work_type` | Enum | Yes | `"solo"` \| `"team"` \| `"both"` |
+| `best_work_type` | Enum | Yes | `"solo"` \| `"team"` |
 
 ---
 
@@ -140,7 +140,6 @@ POST /api/v1/check-ins
 ### `best_work_type`
 - `"solo"` — Best for individual work
 - `"team"` — Best for group/team work
-- `"both"` — Works well for either
 
 ### `category`
 - `"cafe"` — Coffee shop, bakery

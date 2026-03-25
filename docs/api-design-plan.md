@@ -394,7 +394,7 @@ type WorkspaceRatingsRequest struct {
     OutletsAtTable bool  `json:"outlets_at_table"`
     Crowdedness   int    `json:"crowdedness" validate:"required,min=1,max=3"`
     EaseOfWork    int    `json:"ease_of_work" validate:"required,min=1,max=3"`
-    BestWorkType  string `json:"best_work_type" validate:"required,oneof=solo team both"`
+    BestWorkType  string `json:"best_work_type" validate:"required,oneof=solo team"`
 }
 
 // ExistingLocationCheckInRequest — for POST /locations/{location_id}/check-ins

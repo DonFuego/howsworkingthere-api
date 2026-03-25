@@ -74,9 +74,8 @@ GET /api/v1/locations/{location_id}/detail
       "difficult": 20.0
     },
     "best_work_type": {
-      "solo": 50.0,
-      "team": 30.0,
-      "both": 20.0
+      "solo": 60.0,
+      "team": 40.0
     }
   }
 }
@@ -135,8 +134,7 @@ SELECT
     ROUND(100.0 * COUNT(*) FILTER (WHERE ease_of_work = 2) / NULLIF(COUNT(*), 0), 1) AS pct_ease_moderate,
     ROUND(100.0 * COUNT(*) FILTER (WHERE ease_of_work = 3) / NULLIF(COUNT(*), 0), 1) AS pct_ease_difficult,
     ROUND(100.0 * COUNT(*) FILTER (WHERE best_work_type = 'solo') / NULLIF(COUNT(*), 0), 1) AS pct_work_solo,
-    ROUND(100.0 * COUNT(*) FILTER (WHERE best_work_type = 'team') / NULLIF(COUNT(*), 0), 1) AS pct_work_team,
-    ROUND(100.0 * COUNT(*) FILTER (WHERE best_work_type = 'both') / NULLIF(COUNT(*), 0), 1) AS pct_work_both
+    ROUND(100.0 * COUNT(*) FILTER (WHERE best_work_type = 'team') / NULLIF(COUNT(*), 0), 1) AS pct_work_team
 FROM workspace_ratings
 WHERE location_id = $1
 ```

@@ -23,12 +23,12 @@ type NoiseStats struct {
 
 // ISPSpeedStats holds averaged speed test results for a single ISP at a location.
 type ISPSpeedStats struct {
-	ISPName        string   `json:"isp_name"`
+	ISPName         string   `json:"isp_name"`
 	AvgDownloadMbps *float64 `json:"avg_download_mbps"`
 	AvgUploadMbps   *float64 `json:"avg_upload_mbps"`
 	AvgLatencyMs    *float64 `json:"avg_latency_ms"`
 	AvgJitter       *float64 `json:"avg_jitter"`
-	TestCount      int      `json:"test_count"`
+	TestCount       int      `json:"test_count"`
 }
 
 // RatingDistribution holds percentages for a 3-value rating dimension.
@@ -42,7 +42,6 @@ type RatingDistribution struct {
 type WorkTypeDistribution struct {
 	Solo float64 `json:"solo"`
 	Team float64 `json:"team"`
-	Both float64 `json:"both"`
 }
 
 // CrowdednessDistribution holds percentages for crowdedness levels.
@@ -61,10 +60,10 @@ type EaseOfWorkDistribution struct {
 
 // WorkspaceDistribution holds all workspace rating distributions for a location.
 type WorkspaceDistribution struct {
-	TotalRatings    int                     `json:"total_ratings"`
-	PctOutletsAtBar  float64                `json:"pct_outlets_at_bar"`
-	PctOutletsAtTable float64               `json:"pct_outlets_at_table"`
-	Crowdedness      CrowdednessDistribution `json:"crowdedness"`
-	EaseOfWork       EaseOfWorkDistribution  `json:"ease_of_work"`
-	BestWorkType     WorkTypeDistribution    `json:"best_work_type"`
+	TotalRatings      int                     `json:"total_ratings"`
+	PctOutletsAtBar   float64                 `json:"pct_outlets_at_bar"`
+	PctOutletsAtTable float64                 `json:"pct_outlets_at_table"`
+	Crowdedness       CrowdednessDistribution `json:"crowdedness"`
+	EaseOfWork        EaseOfWorkDistribution  `json:"ease_of_work"`
+	BestWorkType      WorkTypeDistribution    `json:"best_work_type"`
 }

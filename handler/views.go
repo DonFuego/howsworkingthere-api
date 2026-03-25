@@ -39,6 +39,7 @@ func GetUserLocations(c *gofr.Context) (interface{}, error) {
 			my_avg_crowdedness, my_avg_ease_of_work, my_rating_count,
 			my_pct_outlets_at_bar, my_pct_outlets_at_table,
 			my_most_common_work_type,
+			my_most_common_ease_of_work,
 			my_first_check_in, my_last_check_in
 		FROM v_user_location_averages
 		WHERE user_id = '%s'
@@ -62,6 +63,7 @@ func GetUserLocations(c *gofr.Context) (interface{}, error) {
 			&r.MyAvgCrowdedness, &r.MyAvgEaseOfWork, &r.MyRatingCount,
 			&r.MyPctOutletsAtBar, &r.MyPctOutletsAtTable,
 			&r.MyMostCommonWorkType,
+			&r.MyMostCommonEaseOfWork,
 			&r.MyFirstCheckIn, &r.MyLastCheckIn,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan user location: %w", err)
@@ -152,6 +154,7 @@ func GetAllLocations(c *gofr.Context) (interface{}, error) {
 		avg_crowdedness, avg_ease_of_work, rating_count,
 		pct_outlets_at_bar, pct_outlets_at_table,
 		most_common_work_type,
+		most_common_ease_of_work,
 		first_check_in, last_check_in
 	FROM v_location_averages`
 
@@ -181,6 +184,7 @@ func GetAllLocations(c *gofr.Context) (interface{}, error) {
 			&r.AvgCrowdedness, &r.AvgEaseOfWork, &r.RatingCount,
 			&r.PctOutletsAtBar, &r.PctOutletsAtTable,
 			&r.MostCommonWorkType,
+			&r.MostCommonEaseOfWork,
 			&r.FirstCheckIn, &r.LastCheckIn,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan location average: %w", err)

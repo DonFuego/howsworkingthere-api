@@ -61,8 +61,7 @@ func GetLocationDetail(c *gofr.Context) (interface{}, error) {
 			ROUND(100.0 * COUNT(*) FILTER (WHERE ease_of_work = 2) / NULLIF(COUNT(*), 0), 1) AS pct_ease_moderate,
 			ROUND(100.0 * COUNT(*) FILTER (WHERE ease_of_work = 3) / NULLIF(COUNT(*), 0), 1) AS pct_ease_difficult,
 			ROUND(100.0 * COUNT(*) FILTER (WHERE best_work_type = 'solo') / NULLIF(COUNT(*), 0), 1) AS pct_work_solo,
-			ROUND(100.0 * COUNT(*) FILTER (WHERE best_work_type = 'team') / NULLIF(COUNT(*), 0), 1) AS pct_work_team,
-			ROUND(100.0 * COUNT(*) FILTER (WHERE best_work_type = 'both') / NULLIF(COUNT(*), 0), 1) AS pct_work_both
+			ROUND(100.0 * COUNT(*) FILTER (WHERE best_work_type = 'team') / NULLIF(COUNT(*), 0), 1) AS pct_work_team
 		FROM workspace_ratings
 		WHERE location_id = '%s'
 	)
@@ -89,7 +88,7 @@ func GetLocationDetail(c *gofr.Context) (interface{}, error) {
 		ws.total_ratings, ws.pct_outlets_at_bar, ws.pct_outlets_at_table,
 		ws.pct_crowdedness_empty, ws.pct_crowdedness_somewhat, ws.pct_crowdedness_crowded,
 		ws.pct_ease_easy, ws.pct_ease_moderate, ws.pct_ease_difficult,
-		ws.pct_work_solo, ws.pct_work_team, ws.pct_work_both
+		ws.pct_work_solo, ws.pct_work_team
 	FROM loc
 	CROSS JOIN checkin_noise cn
 	CROSS JOIN ws`, locationID, locationID, locationID, locationID)
@@ -114,7 +113,7 @@ func GetLocationDetail(c *gofr.Context) (interface{}, error) {
 		&resp.WorkspaceRating.PctOutletsAtBar, &resp.WorkspaceRating.PctOutletsAtTable,
 		&resp.WorkspaceRating.Crowdedness.Empty, &resp.WorkspaceRating.Crowdedness.SomewhatCrowded, &resp.WorkspaceRating.Crowdedness.Crowded,
 		&resp.WorkspaceRating.EaseOfWork.Easy, &resp.WorkspaceRating.EaseOfWork.Moderate, &resp.WorkspaceRating.EaseOfWork.Difficult,
-		&resp.WorkspaceRating.BestWorkType.Solo, &resp.WorkspaceRating.BestWorkType.Team, &resp.WorkspaceRating.BestWorkType.Both,
+		&resp.WorkspaceRating.BestWorkType.Solo, &resp.WorkspaceRating.BestWorkType.Team,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

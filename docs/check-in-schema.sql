@@ -257,7 +257,7 @@ CREATE TABLE IF NOT EXISTS workspace_ratings (
         CHECK (ease_of_work IN (1, 2, 3)),
 
     CONSTRAINT chk_best_work_type
-        CHECK (best_work_type IN ('solo', 'team', 'both'))
+        CHECK (best_work_type IN ('solo', 'team'))
 );
 
 -- Indexes for workspace_ratings
@@ -360,8 +360,11 @@ SELECT
     ROUND(100.0 * COUNT(wr.id) FILTER (WHERE wr.outlets_at_bar = TRUE) / NULLIF(COUNT(wr.id), 0), 0) AS pct_outlets_at_bar,
     ROUND(100.0 * COUNT(wr.id) FILTER (WHERE wr.outlets_at_table = TRUE) / NULLIF(COUNT(wr.id), 0), 0) AS pct_outlets_at_table,
 
-    -- Most common work type (mode)
-    MODE() WITHIN GROUP (ORDER BY wr.best_work_type) AS most_common_work_type,
+    -- Most common work type (mode, excluding legacy 'both')
+    MODE() WITHIN GROUP (ORDER BY wr.best_work_type) FILTER (WHERE wr.best_work_type IN ('solo', 'team')) AS most_common_work_type,
+
+    -- Most common ease of work (mode: 1=easy, 2=moderate, 3=difficult)
+    MODE() WITHIN GROUP (ORDER BY wr.ease_of_work) AS most_common_ease_of_work,
 
     -- Activity window
     MIN(ci.timestamp) AS first_check_in,
@@ -412,8 +415,11 @@ SELECT
     ROUND(100.0 * COUNT(wr.id) FILTER (WHERE wr.outlets_at_bar = TRUE) / NULLIF(COUNT(wr.id), 0), 0) AS my_pct_outlets_at_bar,
     ROUND(100.0 * COUNT(wr.id) FILTER (WHERE wr.outlets_at_table = TRUE) / NULLIF(COUNT(wr.id), 0), 0) AS my_pct_outlets_at_table,
 
-    -- User's most common work type at this location
-    MODE() WITHIN GROUP (ORDER BY wr.best_work_type) AS my_most_common_work_type,
+    -- User's most common work type at this location (excluding legacy 'both')
+    MODE() WITHIN GROUP (ORDER BY wr.best_work_type) FILTER (WHERE wr.best_work_type IN ('solo', 'team')) AS my_most_common_work_type,
+
+    -- User's most common ease of work at this location (mode: 1=easy, 2=moderate, 3=difficult)
+    MODE() WITHIN GROUP (ORDER BY wr.ease_of_work) AS my_most_common_ease_of_work,
 
     -- User's activity window at this location
     MIN(ci.timestamp) AS my_first_check_in,
@@ -493,4 +499,4 @@ COMMENT ON TABLE workspace_ratings IS 'User-submitted workspace ratings — many
 
 COMMENT ON COLUMN workspace_ratings.crowdedness IS '1=Empty, 2=Somewhat Crowded, 3=Crowded';
 COMMENT ON COLUMN workspace_ratings.ease_of_work IS '1=Easy, 2=Moderate, 3=Difficult';
-COMMENT ON COLUMN workspace_ratings.best_work_type IS 'solo, team, or both';
+COMMENT ON COLUMN workspace_ratings.best_work_type IS 'solo or team';
