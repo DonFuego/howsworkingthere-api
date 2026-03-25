@@ -5,7 +5,8 @@
 -- ============================================================
 -- v_location_averages
 -- ============================================================
-CREATE OR REPLACE VIEW v_location_averages AS
+DROP VIEW IF EXISTS v_location_averages CASCADE;
+CREATE VIEW v_location_averages AS
 SELECT
     loc.id AS location_id,
     loc.name AS location_name,
@@ -50,7 +51,8 @@ GROUP BY loc.id, loc.name, loc.address, loc.latitude, loc.longitude, loc.categor
 -- ============================================================
 -- v_user_location_averages
 -- ============================================================
-CREATE OR REPLACE VIEW v_user_location_averages AS
+DROP VIEW IF EXISTS v_user_location_averages CASCADE;
+CREATE VIEW v_user_location_averages AS
 SELECT
     ci.user_id,
 
