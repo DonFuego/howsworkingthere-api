@@ -48,6 +48,12 @@ func main() {
 	app.GET("/api/v1/notifications", handler.ListNotifications)
 	app.POST("/api/v1/notifications/{id}/read", handler.MarkNotificationRead)
 
+	// Favorites
+	app.POST("/api/v1/favorites", handler.AddFavorite)
+	app.DELETE("/api/v1/favorites/{location_id}", handler.RemoveFavorite)
+	app.GET("/api/v1/favorites", handler.ListFavorites)
+	app.GET("/api/v1/favorites/{location_id}", handler.CheckFavorite)
+
 	// Auth0 post-registration trigger (uses its own JWT auth via Auth0TriggerMiddleware)
 	app.POST("/user/register", handler.RegisterUser)
 
