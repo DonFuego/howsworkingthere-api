@@ -23,6 +23,11 @@ services:
       - key: SUPABASE_PROJECT_REF
         type: SECRET
         value: ${SUPABASE_PROJECT_REF}
+      - key: SUPABASE_CONNECTION_TYPE
+        value: session
+      - key: SUPABASE_REGION
+        type: SECRET
+        value: ${SUPABASE_REGION}
       - key: DB_USER
         type: SECRET
         value: ${DB_USER}
@@ -31,8 +36,6 @@ services:
         value: ${DB_PASSWORD}
       - key: DB_NAME
         value: postgres
-      - key: DB_PORT
-        value: "5432"
       - key: DB_SSL_MODE
         value: require
       - key: AUTH0_DOMAIN
