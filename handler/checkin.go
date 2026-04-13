@@ -7,6 +7,7 @@ import (
 	appErrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/middleware"
 	"github.com/howsworkingthere/hows-working-there-api/models"
+	"github.com/howsworkingthere/hows-working-there-api/scoring"
 	"gofr.dev/pkg/gofr"
 	gofrSQL "gofr.dev/pkg/gofr/datasource/sql"
 )
@@ -89,6 +90,17 @@ func CreateCheckIn(c *gofr.Context) (interface{}, error) {
 	// Insert workspace ratings
 	if err := insertWorkspaceRatings(c, tx, req.ID, locationID, &req.WorkspaceRatings); err != nil {
 		return nil, err
+	}
+
+	// Compute and store work score
+	workScore := scoring.ComputeWorkScore(&req.SpeedTest, &req.NoiseLevel, &req.WorkspaceRatings)
+	timeOfDay := scoring.TimeOfDay(req.Timestamp)
+	_, err = tx.ExecContext(c,
+		`UPDATE check_ins SET work_score = $1, time_of_day = $2 WHERE id = $3`,
+		workScore, timeOfDay, req.ID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update work score: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -182,6 +194,17 @@ func CreateCheckInAtLocation(c *gofr.Context) (interface{}, error) {
 	// Insert workspace ratings
 	if err := insertWorkspaceRatings(c, tx, req.ID, locationID, &req.WorkspaceRatings); err != nil {
 		return nil, err
+	}
+
+	// Compute and store work score
+	workScore := scoring.ComputeWorkScore(&req.SpeedTest, &req.NoiseLevel, &req.WorkspaceRatings)
+	timeOfDay := scoring.TimeOfDay(req.Timestamp)
+	_, err = tx.ExecContext(c,
+		`UPDATE check_ins SET work_score = $1, time_of_day = $2 WHERE id = $3`,
+		workScore, timeOfDay, req.ID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update work score: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

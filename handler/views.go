@@ -40,7 +40,8 @@ func GetUserLocations(c *gofr.Context) (interface{}, error) {
 			my_pct_outlets_at_bar, my_pct_outlets_at_table,
 			my_most_common_work_type,
 			my_most_common_ease_of_work,
-			my_first_check_in, my_last_check_in
+			my_first_check_in, my_last_check_in,
+			my_avg_work_score, my_avg_score_morning, my_avg_score_afternoon, my_avg_score_evening
 		FROM v_user_location_averages
 		WHERE user_id = '%s'
 		ORDER BY my_last_check_in DESC`, userID),
@@ -65,6 +66,7 @@ func GetUserLocations(c *gofr.Context) (interface{}, error) {
 			&r.MyMostCommonWorkType,
 			&r.MyMostCommonEaseOfWork,
 			&r.MyFirstCheckIn, &r.MyLastCheckIn,
+			&r.MyAvgWorkScore, &r.MyAvgScoreMorning, &r.MyAvgScoreAfternoon, &r.MyAvgScoreEvening,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan user location: %w", err)
 		}
@@ -155,7 +157,8 @@ func GetAllLocations(c *gofr.Context) (interface{}, error) {
 		pct_outlets_at_bar, pct_outlets_at_table,
 		most_common_work_type,
 		most_common_ease_of_work,
-		first_check_in, last_check_in
+		first_check_in, last_check_in,
+		avg_work_score, avg_score_morning, avg_score_afternoon, avg_score_evening
 	FROM v_location_averages`
 
 	if len(conditions) > 0 {
@@ -186,6 +189,7 @@ func GetAllLocations(c *gofr.Context) (interface{}, error) {
 			&r.MostCommonWorkType,
 			&r.MostCommonEaseOfWork,
 			&r.FirstCheckIn, &r.LastCheckIn,
+			&r.AvgWorkScore, &r.AvgScoreMorning, &r.AvgScoreAfternoon, &r.AvgScoreEvening,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan location average: %w", err)
 		}

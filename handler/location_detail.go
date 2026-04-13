@@ -49,6 +49,19 @@ func GetLocationDetail(c *gofr.Context) (interface{}, error) {
 		WHERE location_id = '%s' AND skipped = FALSE
 		GROUP BY isp_name
 	),
+	score_agg AS (
+		SELECT
+			ROUND(AVG(work_score), 0) AS avg_work_score,
+			COUNT(*) FILTER (WHERE work_score IS NOT NULL) AS scored_check_ins,
+			ROUND(AVG(work_score) FILTER (WHERE time_of_day = 'morning'), 0) AS avg_score_morning,
+			COUNT(*) FILTER (WHERE time_of_day = 'morning' AND work_score IS NOT NULL) AS morning_check_ins,
+			ROUND(AVG(work_score) FILTER (WHERE time_of_day = 'afternoon'), 0) AS avg_score_afternoon,
+			COUNT(*) FILTER (WHERE time_of_day = 'afternoon' AND work_score IS NOT NULL) AS afternoon_check_ins,
+			ROUND(AVG(work_score) FILTER (WHERE time_of_day = 'evening'), 0) AS avg_score_evening,
+			COUNT(*) FILTER (WHERE time_of_day = 'evening' AND work_score IS NOT NULL) AS evening_check_ins
+		FROM check_ins
+		WHERE location_id = '%s'
+	),
 	ws AS (
 		SELECT
 			COUNT(*) AS total_ratings,
@@ -88,13 +101,21 @@ func GetLocationDetail(c *gofr.Context) (interface{}, error) {
 		ws.total_ratings, ws.pct_outlets_at_bar, ws.pct_outlets_at_table,
 		ws.pct_crowdedness_empty, ws.pct_crowdedness_somewhat, ws.pct_crowdedness_crowded,
 		ws.pct_ease_easy, ws.pct_ease_moderate, ws.pct_ease_difficult,
-		ws.pct_work_solo, ws.pct_work_team
+		ws.pct_work_solo, ws.pct_work_team,
+		-- work score
+		sa.avg_work_score, sa.scored_check_ins,
+		sa.avg_score_morning, sa.morning_check_ins,
+		sa.avg_score_afternoon, sa.afternoon_check_ins,
+		sa.avg_score_evening, sa.evening_check_ins
 	FROM loc
 	CROSS JOIN checkin_noise cn
-	CROSS JOIN ws`, locationID, locationID, locationID, locationID)
+	CROSS JOIN ws
+	CROSS JOIN score_agg sa`, locationID, locationID, locationID, locationID, locationID)
 
 	var resp models.LocationDetailResponse
 	var ispJSON []byte
+	var avgScoreMorning, avgScoreAfternoon, avgScoreEvening *float64
+	var morningCheckIns, afternoonCheckIns, eveningCheckIns int
 
 	err := c.SQL.QueryRowContext(c, query).Scan(
 		// location
@@ -114,6 +135,11 @@ func GetLocationDetail(c *gofr.Context) (interface{}, error) {
 		&resp.WorkspaceRating.Crowdedness.Empty, &resp.WorkspaceRating.Crowdedness.SomewhatCrowded, &resp.WorkspaceRating.Crowdedness.Crowded,
 		&resp.WorkspaceRating.EaseOfWork.Easy, &resp.WorkspaceRating.EaseOfWork.Moderate, &resp.WorkspaceRating.EaseOfWork.Difficult,
 		&resp.WorkspaceRating.BestWorkType.Solo, &resp.WorkspaceRating.BestWorkType.Team,
+		// work score
+		&resp.WorkScore.OverallScore, &resp.WorkScore.TotalCheckIns,
+		&avgScoreMorning, &morningCheckIns,
+		&avgScoreAfternoon, &afternoonCheckIns,
+		&avgScoreEvening, &eveningCheckIns,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -128,6 +154,17 @@ func GetLocationDetail(c *gofr.Context) (interface{}, error) {
 	}
 	if resp.SpeedByISP == nil {
 		resp.SpeedByISP = []models.ISPSpeedStats{}
+	}
+
+	// Assemble time-of-day buckets (only include buckets with data)
+	if avgScoreMorning != nil && morningCheckIns > 0 {
+		resp.WorkScore.ByTimeOfDay.Morning = &models.TimeOfDayBucket{Score: *avgScoreMorning, CheckIns: morningCheckIns}
+	}
+	if avgScoreAfternoon != nil && afternoonCheckIns > 0 {
+		resp.WorkScore.ByTimeOfDay.Afternoon = &models.TimeOfDayBucket{Score: *avgScoreAfternoon, CheckIns: afternoonCheckIns}
+	}
+	if avgScoreEvening != nil && eveningCheckIns > 0 {
+		resp.WorkScore.ByTimeOfDay.Evening = &models.TimeOfDayBucket{Score: *avgScoreEvening, CheckIns: eveningCheckIns}
 	}
 
 	return resp, nil

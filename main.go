@@ -33,6 +33,9 @@ func main() {
 	// Single location comprehensive detail
 	app.GET("/api/v1/locations/{location_id}/detail", handler.GetLocationDetail)
 
+	// Location work score summary
+	app.GET("/api/v1/locations/{location_id}/score", handler.GetLocationScore)
+
 	// User search by email
 	app.GET("/api/v1/users/search", handler.SearchUserByEmail)
 

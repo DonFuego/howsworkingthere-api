@@ -12,6 +12,27 @@ type LocationDetailResponse struct {
 	Noise           NoiseStats            `json:"noise"`
 	SpeedByISP      []ISPSpeedStats       `json:"speed_by_isp"`
 	WorkspaceRating WorkspaceDistribution `json:"workspace_ratings"`
+	WorkScore       WorkScoreSummary      `json:"work_score"`
+}
+
+// WorkScoreSummary holds the aggregated work score for a location.
+type WorkScoreSummary struct {
+	OverallScore  *float64        `json:"overall_score"`
+	TotalCheckIns int             `json:"total_check_ins"`
+	ByTimeOfDay   TimeOfDayScores `json:"by_time_of_day"`
+}
+
+// TimeOfDayScores holds per-bucket score summaries.
+type TimeOfDayScores struct {
+	Morning   *TimeOfDayBucket `json:"morning,omitempty"`
+	Afternoon *TimeOfDayBucket `json:"afternoon,omitempty"`
+	Evening   *TimeOfDayBucket `json:"evening,omitempty"`
+}
+
+// TimeOfDayBucket holds the score and count for a time-of-day bucket.
+type TimeOfDayBucket struct {
+	Score    float64 `json:"score"`
+	CheckIns int     `json:"check_ins"`
 }
 
 // NoiseStats holds averaged noise measurements for a location.

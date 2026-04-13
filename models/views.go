@@ -27,6 +27,10 @@ type UserLocationAverage struct {
 	MyMostCommonEaseOfWork *int     `json:"my_most_common_ease_of_work" db:"my_most_common_ease_of_work"`
 	MyFirstCheckIn         *string  `json:"my_first_check_in" db:"my_first_check_in"`
 	MyLastCheckIn          *string  `json:"my_last_check_in" db:"my_last_check_in"`
+	MyAvgWorkScore         *float64 `json:"my_avg_work_score" db:"my_avg_work_score"`
+	MyAvgScoreMorning      *float64 `json:"my_avg_score_morning" db:"my_avg_score_morning"`
+	MyAvgScoreAfternoon    *float64 `json:"my_avg_score_afternoon" db:"my_avg_score_afternoon"`
+	MyAvgScoreEvening      *float64 `json:"my_avg_score_evening" db:"my_avg_score_evening"`
 }
 
 // LocationAverage maps to the v_location_averages view.
@@ -56,4 +60,8 @@ type LocationAverage struct {
 	MostCommonEaseOfWork *int     `json:"most_common_ease_of_work" db:"most_common_ease_of_work"`
 	FirstCheckIn         *string  `json:"first_check_in" db:"first_check_in"`
 	LastCheckIn          *string  `json:"last_check_in" db:"last_check_in"`
+	AvgWorkScore         *float64 `json:"avg_work_score" db:"avg_work_score"`
+	AvgScoreMorning      *float64 `json:"avg_score_morning" db:"avg_score_morning"`
+	AvgScoreAfternoon    *float64 `json:"avg_score_afternoon" db:"avg_score_afternoon"`
+	AvgScoreEvening      *float64 `json:"avg_score_evening" db:"avg_score_evening"`
 }
