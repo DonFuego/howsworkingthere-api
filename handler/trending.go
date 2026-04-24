@@ -56,7 +56,7 @@ func GetTrendingLocations(c *gofr.Context) (interface{}, error) {
 		INNER JOIN check_ins ci ON ci.location_id = l.id
 		WHERE ci.timestamp >= %s
 		GROUP BY l.id, l.name, l.address, l.latitude, l.longitude, l.category
-		ORDER BY avg_work_score DESC NULLS LAST, check_ins DESC, l.name ASC
+		ORDER BY check_ins DESC, avg_work_score DESC NULLS LAST, unique_users DESC, l.name ASC
 		LIMIT %d`, interval, limit)
 
 	rows, err := c.SQL.QueryContext(c, query)
