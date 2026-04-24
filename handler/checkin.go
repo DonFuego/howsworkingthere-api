@@ -52,15 +52,17 @@ func CreateCheckIn(c *gofr.Context) (interface{}, error) {
 
 	// Check idempotency: if check-in with this ID already exists, return it
 	var existingCheckInID string
+	var existingWorkScore sql.NullInt64
 	err = tx.QueryRowContext(c,
-		`SELECT id FROM check_ins WHERE id = $1`, req.ID,
-	).Scan(&existingCheckInID)
+		`SELECT id, work_score FROM check_ins WHERE id = $1`, req.ID,
+	).Scan(&existingCheckInID, &existingWorkScore)
 	if err == nil {
 		// Already exists — return existing record
 		tx.Rollback()
 		return models.CheckInResponse{
 			CheckInID:  existingCheckInID,
 			LocationID: locationID,
+			WorkScore:  int(existingWorkScore.Int64),
 			CreatedAt:  req.Timestamp,
 		}, nil
 	}
@@ -110,6 +112,7 @@ func CreateCheckIn(c *gofr.Context) (interface{}, error) {
 	return models.CheckInResponse{
 		CheckInID:  req.ID,
 		LocationID: locationID,
+		WorkScore:  workScore,
 		CreatedAt:  req.Timestamp,
 	}, nil
 }
@@ -157,14 +160,16 @@ func CreateCheckInAtLocation(c *gofr.Context) (interface{}, error) {
 
 	// Check idempotency
 	var existingCheckInID string
+	var existingWorkScore sql.NullInt64
 	err = tx.QueryRowContext(c,
-		`SELECT id FROM check_ins WHERE id = $1`, req.ID,
-	).Scan(&existingCheckInID)
+		`SELECT id, work_score FROM check_ins WHERE id = $1`, req.ID,
+	).Scan(&existingCheckInID, &existingWorkScore)
 	if err == nil {
 		tx.Rollback()
 		return models.CheckInResponse{
 			CheckInID:  existingCheckInID,
 			LocationID: locationID,
+			WorkScore:  int(existingWorkScore.Int64),
 			CreatedAt:  req.Timestamp,
 		}, nil
 	}
@@ -214,6 +219,7 @@ func CreateCheckInAtLocation(c *gofr.Context) (interface{}, error) {
 	return models.CheckInResponse{
 		CheckInID:  req.ID,
 		LocationID: locationID,
+		WorkScore:  workScore,
 		CreatedAt:  req.Timestamp,
 	}, nil
 }

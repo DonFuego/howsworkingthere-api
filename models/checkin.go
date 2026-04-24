@@ -32,5 +32,6 @@ type ExistingLocationCheckInRequest struct {
 type CheckInResponse struct {
 	CheckInID  string    `json:"check_in_id"`
 	LocationID string    `json:"location_id"`
+	WorkScore  int       `json:"work_score"`
 	CreatedAt  time.Time `json:"created_at"`
 }
