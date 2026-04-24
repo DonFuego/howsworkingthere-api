@@ -3,6 +3,8 @@ package handler
 import (
 	"fmt"
 
+	"github.com/howsworkingthere/hows-working-there-api/database"
+
 	appErrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/models"
 	"gofr.dev/pkg/gofr"
@@ -22,7 +24,7 @@ func RegisterUser(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.BadRequestError{Message: "missing required fields: email, user_id, and user_name are required"}
 	}
 
-	tx, err := c.SQL.Begin()
+	tx, err := database.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/howsworkingthere/hows-working-there-api/database"
+
 	appErrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/models"
 	"gofr.dev/pkg/gofr"
@@ -117,7 +119,7 @@ func GetLocationDetail(c *gofr.Context) (interface{}, error) {
 	var avgScoreMorning, avgScoreAfternoon, avgScoreEvening *float64
 	var morningCheckIns, afternoonCheckIns, eveningCheckIns int
 
-	err := c.SQL.QueryRowContext(c, query).Scan(
+	err := database.DB.QueryRowContext(c, query).Scan(
 		// location
 		&resp.Location.ID, &resp.Location.Name, &resp.Location.Address,
 		&resp.Location.Latitude, &resp.Location.Longitude,

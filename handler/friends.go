@@ -3,6 +3,8 @@ package handler
 import (
 	"fmt"
 
+	"github.com/howsworkingthere/hows-working-there-api/database"
+
 	appErrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/middleware"
 	"github.com/howsworkingthere/hows-working-there-api/models"
@@ -32,7 +34,7 @@ func SendFriendRequest(c *gofr.Context) (interface{}, error) {
 
 	// Verify target user exists
 	var targetExists bool
-	err := c.SQL.QueryRowContext(c,
+	err := database.DB.QueryRowContext(c,
 		`SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`, req.FriendID,
 	).Scan(&targetExists)
 	if err != nil || !targetExists {
@@ -41,7 +43,7 @@ func SendFriendRequest(c *gofr.Context) (interface{}, error) {
 
 	// Check if friendship already exists in either direction
 	var existingCount int
-	err = c.SQL.QueryRowContext(c,
+	err = database.DB.QueryRowContext(c,
 		`SELECT COUNT(*) FROM friendships
 		 WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)`,
 		authedUserID, req.FriendID,
@@ -55,14 +57,14 @@ func SendFriendRequest(c *gofr.Context) (interface{}, error) {
 
 	// Get requester's name for notification message
 	var requesterName string
-	err = c.SQL.QueryRowContext(c,
+	err = database.DB.QueryRowContext(c,
 		`SELECT user_name FROM users WHERE id = $1`, authedUserID,
 	).Scan(&requesterName)
 	if err != nil {
 		requesterName = "Someone"
 	}
 
-	tx, err := c.SQL.Begin()
+	tx, err := database.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -120,7 +122,7 @@ func AcceptFriendRequest(c *gofr.Context) (interface{}, error) {
 
 	// Verify this is a pending request TO the current user
 	var friendship models.Friendship
-	err := c.SQL.QueryRowContext(c,
+	err := database.DB.QueryRowContext(c,
 		`SELECT id, user_id, friend_id, status FROM friendships WHERE id = $1`,
 		req.FriendshipID,
 	).Scan(&friendship.ID, &friendship.UserID, &friendship.FriendID, &friendship.Status)
@@ -137,14 +139,14 @@ func AcceptFriendRequest(c *gofr.Context) (interface{}, error) {
 
 	// Get acceptor's name for notification
 	var acceptorName string
-	err = c.SQL.QueryRowContext(c,
+	err = database.DB.QueryRowContext(c,
 		`SELECT user_name FROM users WHERE id = $1`, authedUserID,
 	).Scan(&acceptorName)
 	if err != nil {
 		acceptorName = "Someone"
 	}
 
-	tx, err := c.SQL.Begin()
+	tx, err := database.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -208,7 +210,7 @@ func DenyFriendRequest(c *gofr.Context) (interface{}, error) {
 
 	// Verify this is a pending request TO the current user
 	var friendID, status string
-	err := c.SQL.QueryRowContext(c,
+	err := database.DB.QueryRowContext(c,
 		`SELECT friend_id, status FROM friendships WHERE id = $1`,
 		req.FriendshipID,
 	).Scan(&friendID, &status)
@@ -223,7 +225,7 @@ func DenyFriendRequest(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.BadRequestError{Message: "this request is not pending"}
 	}
 
-	tx, err := c.SQL.Begin()
+	tx, err := database.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -263,7 +265,7 @@ func RemoveFriend(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.BadRequestError{Message: "friend_id path parameter is required"}
 	}
 
-	tx, err := c.SQL.Begin()
+	tx, err := database.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -298,7 +300,7 @@ func ListFriends(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.UnauthorizedError{Message: "unable to determine authenticated user"}
 	}
 
-	tx, err := c.SQL.Begin()
+	tx, err := database.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}

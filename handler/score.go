@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/howsworkingthere/hows-working-there-api/database"
+
 	appErrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/models"
 	"gofr.dev/pkg/gofr"
@@ -19,7 +21,7 @@ func GetLocationScore(c *gofr.Context) (interface{}, error) {
 
 	// Verify the location exists
 	var locExists bool
-	err := c.SQL.QueryRowContext(c,
+	err := database.DB.QueryRowContext(c,
 		`SELECT EXISTS(SELECT 1 FROM locations WHERE id = $1)`, locationID,
 	).Scan(&locExists)
 	if err != nil || !locExists {
@@ -43,7 +45,7 @@ func GetLocationScore(c *gofr.Context) (interface{}, error) {
 	var avgScoreMorning, avgScoreAfternoon, avgScoreEvening *float64
 	var morningCheckIns, afternoonCheckIns, eveningCheckIns int
 
-	err = c.SQL.QueryRowContext(c, query).Scan(
+	err = database.DB.QueryRowContext(c, query).Scan(
 		&summary.OverallScore, &summary.TotalCheckIns,
 		&avgScoreMorning, &morningCheckIns,
 		&avgScoreAfternoon, &afternoonCheckIns,

@@ -3,6 +3,8 @@ package handler
 import (
 	"fmt"
 
+	"github.com/howsworkingthere/hows-working-there-api/database"
+
 	appErrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/middleware"
 	"github.com/howsworkingthere/hows-working-there-api/models"
@@ -28,7 +30,7 @@ func AddFavorite(c *gofr.Context) (interface{}, error) {
 
 	// Upsert — ignore conflict if already favorited
 	var fav models.UserFavoriteLocation
-	err := c.SQL.QueryRowContext(c,
+	err := database.DB.QueryRowContext(c,
 		`INSERT INTO user_favorite_locations (user_id, location_id)
 		 VALUES ($1, $2)
 		 ON CONFLICT (user_id, location_id) DO UPDATE SET user_id = EXCLUDED.user_id
@@ -55,7 +57,7 @@ func RemoveFavorite(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.BadRequestError{Message: "location_id path parameter is required"}
 	}
 
-	result, err := c.SQL.ExecContext(c,
+	result, err := database.DB.ExecContext(c,
 		`DELETE FROM user_favorite_locations WHERE user_id = $1 AND location_id = $2`,
 		authedUserID, locationID,
 	)
@@ -79,7 +81,7 @@ func ListFavorites(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.UnauthorizedError{Message: "unable to determine authenticated user"}
 	}
 
-	rows, err := c.SQL.QueryContext(c,
+	rows, err := database.DB.QueryContext(c,
 		`SELECT f.id, f.user_id, f.location_id,
 		        l.name AS location_name, l.address AS location_address, l.category AS location_category,
 		        f.created_at
@@ -128,7 +130,7 @@ func CheckFavorite(c *gofr.Context) (interface{}, error) {
 	}
 
 	var exists bool
-	err := c.SQL.QueryRowContext(c,
+	err := database.DB.QueryRowContext(c,
 		`SELECT EXISTS(SELECT 1 FROM user_favorite_locations WHERE user_id = $1 AND location_id = $2)`,
 		authedUserID, locationID,
 	).Scan(&exists)

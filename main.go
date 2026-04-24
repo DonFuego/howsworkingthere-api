@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+
+	"github.com/howsworkingthere/hows-working-there-api/database"
 	"github.com/howsworkingthere/hows-working-there-api/handler"
 	"github.com/howsworkingthere/hows-working-there-api/middleware"
 	"gofr.dev/pkg/gofr"
@@ -8,6 +11,15 @@ import (
 
 func main() {
 	app := gofr.New()
+
+	// Initialize pgx-backed database pool. This bypasses GoFr's lib/pq-based
+	// SQL datasource because lib/pq's implicit prepared-statement cache breaks
+	// on PgBouncer / Supavisor transaction pooling, causing intermittent
+	// "unnamed prepared statement does not exist (26000)" errors.
+	if err := database.Init(); err != nil {
+		log.Fatalf("failed to initialize database: %v", err)
+	}
+	defer database.Close()
 
 	// Auth0 JWT middleware — validates Bearer token on all requests
 	app.UseMiddleware(middleware.Auth0Middleware)

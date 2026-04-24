@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/howsworkingthere/hows-working-there-api/database"
+
 	appErrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/models"
 	"gofr.dev/pkg/gofr"
@@ -59,7 +61,7 @@ func GetTrendingLocations(c *gofr.Context) (interface{}, error) {
 		ORDER BY check_ins DESC, avg_work_score DESC NULLS LAST, unique_users DESC, l.name ASC
 		LIMIT %d`, interval, limit)
 
-	rows, err := c.SQL.QueryContext(c, query)
+	rows, err := database.DB.QueryContext(c, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query trending locations: %w", err)
 	}

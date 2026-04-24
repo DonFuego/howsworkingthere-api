@@ -3,6 +3,8 @@ package handler
 import (
 	"fmt"
 
+	"github.com/howsworkingthere/hows-working-there-api/database"
+
 	appErrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/middleware"
 	"github.com/howsworkingthere/hows-working-there-api/models"
@@ -17,7 +19,7 @@ func GetFriendsActivity(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.UnauthorizedError{Message: "unable to determine authenticated user"}
 	}
 
-	tx, err := c.SQL.Begin()
+	tx, err := database.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}

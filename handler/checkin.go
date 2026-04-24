@@ -4,12 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/howsworkingthere/hows-working-there-api/database"
 	appErrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/middleware"
 	"github.com/howsworkingthere/hows-working-there-api/models"
 	"github.com/howsworkingthere/hows-working-there-api/scoring"
 	"gofr.dev/pkg/gofr"
-	gofrSQL "gofr.dev/pkg/gofr/datasource/sql"
 )
 
 // CreateCheckIn handles POST /api/v1/check-ins
@@ -37,14 +37,14 @@ func CreateCheckIn(c *gofr.Context) (interface{}, error) {
 
 	// Verify the location exists
 	var locExists bool
-	err := c.SQL.QueryRowContext(c,
+	err := database.DB.QueryRowContext(c,
 		`SELECT EXISTS(SELECT 1 FROM locations WHERE id = $1)`, locationID,
 	).Scan(&locExists)
 	if err != nil || !locExists {
 		return nil, appErrors.NotFoundError{Message: fmt.Sprintf("location not found: %s", locationID)}
 	}
 
-	tx, err := c.SQL.Begin()
+	tx, err := database.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -142,14 +142,14 @@ func CreateCheckInAtLocation(c *gofr.Context) (interface{}, error) {
 
 	// Verify the location exists
 	var locExists bool
-	err := c.SQL.QueryRowContext(c,
+	err := database.DB.QueryRowContext(c,
 		`SELECT EXISTS(SELECT 1 FROM locations WHERE id = $1)`, locationID,
 	).Scan(&locExists)
 	if err != nil || !locExists {
 		return nil, appErrors.NotFoundError{Message: fmt.Sprintf("location not found: %s", locationID)}
 	}
 
-	tx, err := c.SQL.Begin()
+	tx, err := database.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -218,7 +218,7 @@ func CreateCheckInAtLocation(c *gofr.Context) (interface{}, error) {
 	}, nil
 }
 
-func insertSpeedTest(c *gofr.Context, tx *gofrSQL.Tx, checkInID, locationID string, st *models.SpeedTestRequest) error {
+func insertSpeedTest(c *gofr.Context, tx *sql.Tx, checkInID, locationID string, st *models.SpeedTestRequest) error {
 	var serverDomain, serverCity, serverCountry *string
 	if st.Server != nil {
 		serverDomain = st.Server.Domain
@@ -248,7 +248,7 @@ func insertSpeedTest(c *gofr.Context, tx *gofrSQL.Tx, checkInID, locationID stri
 	return nil
 }
 
-func insertNoiseLevel(c *gofr.Context, tx *gofrSQL.Tx, checkInID, locationID string, nl *models.NoiseLevelRequest) error {
+func insertNoiseLevel(c *gofr.Context, tx *sql.Tx, checkInID, locationID string, nl *models.NoiseLevelRequest) error {
 	_, err := tx.ExecContext(c,
 		`INSERT INTO noise_levels (
 			check_in_id, location_id,
@@ -263,7 +263,7 @@ func insertNoiseLevel(c *gofr.Context, tx *gofrSQL.Tx, checkInID, locationID str
 	return nil
 }
 
-func insertWorkspaceRatings(c *gofr.Context, tx *gofrSQL.Tx, checkInID, locationID string, wr *models.WorkspaceRatingsRequest) error {
+func insertWorkspaceRatings(c *gofr.Context, tx *sql.Tx, checkInID, locationID string, wr *models.WorkspaceRatingsRequest) error {
 	_, err := tx.ExecContext(c,
 		`INSERT INTO workspace_ratings (
 			check_in_id, location_id,

@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/howsworkingthere/hows-working-there-api/database"
+
 	apierrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/models"
 	"gofr.dev/pkg/gofr"
@@ -23,7 +25,7 @@ func CreateLocation(c *gofr.Context) (interface{}, error) {
 	}
 
 	var loc models.Location
-	err := c.SQL.QueryRowContext(c,
+	err := database.DB.QueryRowContext(c,
 		`INSERT INTO locations (name, address, latitude, longitude, category, mapkit_poi_category)
 		 VALUES ($1, $2, $3, $4, $5, $6)
 		 RETURNING id, name, address, latitude, longitude, category, mapkit_poi_category, created_at, updated_at`,
@@ -107,7 +109,7 @@ func SearchLocations(c *gofr.Context) (interface{}, error) {
 	}
 	query += " ORDER BY name LIMIT 50"
 
-	rows, err := c.SQL.QueryContext(c, query, args...)
+	rows, err := database.DB.QueryContext(c, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search locations: %w", err)
 	}

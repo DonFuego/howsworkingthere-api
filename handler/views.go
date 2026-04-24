@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/howsworkingthere/hows-working-there-api/database"
+
 	appErrors "github.com/howsworkingthere/hows-working-there-api/errors"
 	"github.com/howsworkingthere/hows-working-there-api/middleware"
 	"github.com/howsworkingthere/hows-working-there-api/models"
@@ -28,7 +30,7 @@ func GetUserLocations(c *gofr.Context) (interface{}, error) {
 		return nil, appErrors.ForbiddenError{Message: "access denied: you can only view your own locations"}
 	}
 
-	rows, err := c.SQL.QueryContext(c,
+	rows, err := database.DB.QueryContext(c,
 		fmt.Sprintf(`SELECT
 			user_id, location_id, location_name, location_address,
 			latitude, longitude, location_category,
@@ -168,7 +170,7 @@ func GetAllLocations(c *gofr.Context) (interface{}, error) {
 	query += " ORDER BY total_check_ins DESC"
 	query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
 
-	rows, err := c.SQL.QueryContext(c, query, args...)
+	rows, err := database.DB.QueryContext(c, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query locations: %w", err)
 	}
