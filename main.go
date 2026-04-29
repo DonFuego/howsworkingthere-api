@@ -45,9 +45,6 @@ func main() {
 	// Single location comprehensive detail
 	app.GET("/api/v1/locations/{location_id}/detail", handler.GetLocationDetail)
 
-	// Location work score summary
-	app.GET("/api/v1/locations/{location_id}/score", handler.GetLocationScore)
-
 	// Trending locations (by check-in count within a time window)
 	app.GET("/api/v1/locations/trending", handler.GetTrendingLocations)
 
